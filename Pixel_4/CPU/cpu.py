@@ -1,7 +1,10 @@
 import subprocess
+from typing import cast
 
-little_cpu_clock_list = [300000, 576000, 748800, 998400, 1209600, 1324800, 1516800, 1612800, 1708800]
-big_cpu_clock_list = [300000, 652800, 825600, 979200, 1132800, 1363200, 1536000, 1747200, 1843200, 1996800]
+# little_cpu_clock_list = [300000, 576000, 748800, 998400, 1209600, 1324800, 1516800, 1612800, 1708800]
+little_cpu_clock_list = [300000, 403200, 499200, 576000, 672000, 768000, 844800, 940800, 1036800, 1113600, 1209600, 1305600, 1382400, 1478400, 1555200, 1632000, 1708800, 1785600]
+# big_cpu_clock_list = [300000, 652800, 825600, 979200, 1132800, 1363200, 1536000, 1747200, 1843200, 1996800]
+big_cpu_clock_list = [710400, 825600, 940800, 1056000, 1171200, 1286400, 1401600, 1497600, 1612800, 1708800, 1804800, 1920000, 2016000, 2131200, 2227200, 2323200, 2419200]
 dir_thermal='/sys/devices/virtual/thermal'
 
 class CPU:
@@ -13,12 +16,12 @@ class CPU:
 		self.temp_data=[]
 
 		if self.cpu_type == 'b':
-			self.max_freq = 9
-			self.clk = 9
+			self.max_freq = 16
+			self.clk = 16
 			self.cpu_clock_list = big_cpu_clock_list
 		elif self.cpu_type == 'l':
-			self.max_freq = 8
-			self.clk = 8
+			self.max_freq = 17
+			self.clk = 17
 			self.cpu_clock_list = little_cpu_clock_list
 		
 
@@ -66,7 +69,7 @@ class CPU:
 
 	def getCurrentClock(self):
 		if self.cpu_type == 'l':
-			for i in range(0,6):
+			for i in range(0,4):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/cpuinfo_cur_freq' %(i)
 				output = subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"cat', fname+"\""])
 				output = output.decode('utf-8')
@@ -74,7 +77,7 @@ class CPU:
 				print('[cpu{}]{}KHz '.format(i,output),end=""),
 
 		if self.cpu_type == 'b':
-			for i in range(6,8):
+			for i in range(4,8):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/cpuinfo_cur_freq' %(i)
 				output = subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"cat', fname+"\""])
 				output = output.decode('utf-8')
@@ -83,26 +86,26 @@ class CPU:
 
 	def setUserspace(self):
 		if self.cpu_type == 'l':
-			for i in range(0,6):
+			for i in range(0,4):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/scaling_governor' %(i)
 				subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"echo userspace >', fname+"\""])
 				print('[cpu{}]Set userspace '.format(i),end="")
 
 		if self.cpu_type == 'b':
-			for i in range(6,8):
+			for i in range(4,8):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/scaling_governor' %(i)
 				subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"echo userspace >', fname+"\""])
 				print('[cpu{}]Set userspace '.format(i),end="")
 
 	def setdefault(self, mode):
 		if self.cpu_type == 'l':
-			for i in range(0,6):
+			for i in range(0,4):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/scaling_governor' %(i)
 				subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"echo '+mode+' >', fname+"\""])
 				print('[cpu{}]Set {}'.format(i,mode),end="")
 
 		if self.cpu_type == 'b':
-			for i in range(6,8):
+			for i in range(4,8):
 				fname='/sys/devices/system/cpu/cpu%s/cpufreq/scaling_governor' %(i)
 				subprocess.check_output(['adb', '-s', self.ip, 'shell', 'su -c', '\"echo '+mode+' >', fname+"\""])
 				print('[cpu{}]Set {}'.format(i,mode),end="")

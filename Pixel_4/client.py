@@ -56,7 +56,7 @@ if __name__=="__main__":
 		For Pixel 3a, c0 -> LITTLE, c6 -> big, g -> GPU
 	'''
 	c0=CPU(0, ip=pixel_ip, cpu_type='l')
-	c6=CPU(6, ip=pixel_ip, cpu_type='b')
+	c6=CPU(4, ip=pixel_ip, cpu_type='b')
 	g=GPU(ip=pixel_ip)
 	pl=PowerLogger()
 
@@ -66,9 +66,9 @@ if __name__=="__main__":
 	g.setUserspace()
 
 	''' Set CPU and GPU clock to maximum before starting '''
-	c0.setCPUclock(8)
-	c6.setCPUclock(8)
-	g.setGPUclock(3)
+	c0.setCPUclock(17)
+	c6.setCPUclock(16)
+	g.setGPUclock(2)
 
 	''' Check whether setting clocks is properly or not '''
 	c0.getCurrentClock()
@@ -96,8 +96,8 @@ if __name__=="__main__":
 		c_t -> CPU temperature
 		g_t -> GPU temperature
 	'''
-	c_c=8
-	g_c=3
+	c_c=17
+	g_c=2
 	c_t=float(c0.getCPUtemp())
 	g_t=float(g.getGPUtemp())
 	state=(c_c,g_c,int(pl.getPower()/100),0, c_t, g_t)
@@ -133,11 +133,16 @@ if __name__=="__main__":
 		print('[{}] state:{} next_state:{} fps:{}'.format(t, state, next_state, fps))
 		state=next_state
 		# get action
-		recv_msg=client_socket.recv(8702).decode()
-		clk=recv_msg.split(',')
-
-		c_c=int(clk[0])
-		g_c=int(clk[1])
+		is_received = False
+		while not is_received:
+			try:
+				recv_msg=client_socket.recv(8702).decode()
+				clk=recv_msg.split(',')
+				c_c=int(clk[0])
+				g_c=int(clk[1])
+				is_received = True
+			except:
+				pass
 
 		c0.setCPUclock(c_c)
 		c6.setCPUclock(c_c)
