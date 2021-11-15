@@ -27,7 +27,6 @@ experiment_time=500 #14100
 clock_change_time=30
 cpu_power_limit=1000
 gpu_power_limit=1600
-action_space=9
 target_fps=60
 target_temp=65
 beta=2 #4
@@ -43,13 +42,12 @@ class DQNAgent:
 		self.training=0
 		self.state_size=state_size
 		self.action_size=action_size
-		self.actions=list(range(9))
-		self.q_table=defaultdict(lambda:[0.0 for i in range(action_space)])
+		self.actions=list(range(action_size))
+		self.q_table=defaultdict(lambda:[0.0 for i in range(action_size)])
 		self.clk_action_list=[]
-		for i in range(3):
-			for j in range(3):
-				clk_action=(7*i+2,j)
-				self.clk_action_list.append(clk_action)
+		for i in range(action_size):
+			clk_action=(i, int((i - 1) / 8) + 1)
+			self.clk_action_list.append(clk_action)
 
 		# Hyperparameter
 		self.learning_rate=0.05    # 0.01
@@ -216,7 +214,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
 	
 if __name__=="__main__":
 
-	agent = DQNAgent(7,9)
+	agent = DQNAgent(7,17)
 	scores, episodes = [], []
 
 	t=1
