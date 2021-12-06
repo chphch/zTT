@@ -23,7 +23,7 @@ if __name__ == "__main__":
         --pixel_ip        Pixel device IP for connecting device via adb
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('--app', type=str, required=True, choices=['showroom', 'skype', 'call'],
+    parser.add_argument('--app', type=str, required=True, choices=['showroom', 'skype', 'call', 'multi_dnn_profiler'],
 		help="Application name for learning")
     parser.add_argument('--exp_time', type=int, default='300', help="Time steps for learning")
     parser.add_argument('--server_ip', type=str, required=True, help="Agent server IP")
@@ -77,7 +77,9 @@ if __name__ == "__main__":
     elif app == 'skype':
         view = "\"com.skype.raider/com.skype4life.MainActivity#0\""
     elif app == 'call':
-        view = "\"SurfaceView - com.tencent.tmgp.kr.codm/com.tencent.tmgp.cod.CODMainActivity#0\""    
+        view = "\"SurfaceView - com.tencent.tmgp.kr.codm/com.tencent.tmgp.cod.CODMainActivity#0\""
+    elif app == 'multi_dnn_profiler':
+        view = "\"com.multi_dnn_profiler/com.multi_dnn_profiler.MainActivity#0\""
     
     #view = "\"SurfaceView - com.tencent.tmgp.kr.codm/com.tencent.tmgp.cod.CODMainActivity#0\""
     # view = "\"com.skype.raider/com.skype4life.MainActivity#0\""
