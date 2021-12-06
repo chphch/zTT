@@ -1,6 +1,5 @@
 import time
 import subprocess
-from threading import Thread
 
 
 nanoseconds_per_second = 1e9
@@ -55,21 +54,14 @@ class SurfaceFlingerFPS():
         if view is None:
             raise RuntimeError("Fail to get current SurfaceFlinger view")
 
-        #refresh_period, base_timestamp, timestamps = self.__init_frame_data__(view)
-        #while True:
-        
         self.refresh_period, self.timestamps = self.__frame_data__(view)
-        #print(self.timestamps)
         time.sleep(1)
         self.refresh_period, tss = self.__frame_data__(view)
-        #print(tss)
         self.last_index = 0
-        #print(tss)
         if self.timestamps:
                 self.recent_timestamp = self.timestamps[-2]
                 self.last_index = tss.index(self.recent_timestamp)
         self.timestamps = self.timestamps[:-2] + tss[self.last_index:]
-        #time.sleep(1)
         
         ajusted_timestamps = []
         for seconds in self.timestamps[:]:
@@ -84,10 +76,6 @@ class SurfaceFlingerFPS():
                 if seconds > from_time:
                     fps_count += 1
         self.fps = fps_count
-
-    def start(self):
-        th = Thread(target=self.collect_frame_data, args=(self.view,))
-        th.start()
     
     def getFPS(self):
         self.collect_frame_data(self.view)
