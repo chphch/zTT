@@ -6,7 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 import csv
 
-from SurfaceFlinger.get_fps import SurfaceFlingerFPS
+from SurfaceFlinger.get_fps import SurfaceFlingerFPS, get_multi_dnn_profiler_fps
 from PowerLogger.powerlogger import PowerLogger
 from CPU.cpu import CPU
 from GPU.gpu import GPU
@@ -85,7 +85,8 @@ if __name__ == "__main__":
     # view = "\"com.skype.raider/com.skype4life.MainActivity#0\""
     #view = "\"SurfaceView - com.android.chrome/org.chromium.chrome.browser.ChromeTabbedActivity#0\""
     
-    sf_fps_driver = SurfaceFlingerFPS(view, ip=pixel_ip)
+    if app != 'multi_dnn_profiler':
+        sf_fps_driver = SurfaceFlingerFPS(view, ip=pixel_ip)
     
     ''' 
         Set initial state
@@ -105,7 +106,10 @@ if __name__ == "__main__":
 
     ''' Start learning '''
     while(1):
-        fps = float(sf_fps_driver.getFPS())
+        if app == 'multi_dnn_profiler':
+            fps = get_multi_dnn_profiler_fps(pixel_ip)
+        else:
+            fps = float(sf_fps_driver.getFPS())
         if fps > 60:
             fps = 60.0
         fps_data.append(fps)

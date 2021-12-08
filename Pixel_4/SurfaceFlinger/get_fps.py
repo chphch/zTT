@@ -5,6 +5,13 @@ import subprocess
 nanoseconds_per_second = 1e9
 
 
+def get_multi_dnn_profiler_fps(ip):
+    out = subprocess.check_output(
+        ['adb', '-s', ip, 'shell', 'cat', '/storage/emulated/0/Android/data/com.multi_dnn_profiler/files/frame_rate'])
+    out = out.decode('utf-8')
+    return float(out[1:-1].split('=')[1])
+
+
 class SurfaceFlingerFPS():
     
     def __init__(self, view, ip):
@@ -80,3 +87,7 @@ class SurfaceFlingerFPS():
     def getFPS(self):
         self.collect_frame_data(self.view)
         return self.fps
+
+
+if __name__ == '__main__':
+    print(get_multi_dnn_profiler_fps('192.168.0.102:5555'))
