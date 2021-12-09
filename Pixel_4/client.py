@@ -41,7 +41,7 @@ class Client:
         self.target_fps = target_fps
         self.pixel_ip = pixel_ip
         self.pl = PowerLogger()
-        self.t = 0
+        self.t = 1
         self.ts = []
         self.fps_data = []
         self.state = State(c_c=0, g_c=0, c_p=0, c_t=0, g_t=0, fps=0)
@@ -54,6 +54,8 @@ class Client:
         self.initialize()
 
     def initialize(self):
+        self.client_socket.send((str(self.target_fps) + ',' + str(self.exp_time)).encode())
+
         ''' Set CPU and GPU governor to userspace '''
         self.c0.setUserspace()
         self.c6.setUserspace()
@@ -83,7 +85,7 @@ class Client:
 
     def run(self):
         self.start_time = time.time()
-        while self.t < self.exp_time:
+        while self.t <= self.exp_time:
             self.step()
             self.t += 1
 
