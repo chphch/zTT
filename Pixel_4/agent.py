@@ -20,6 +20,9 @@ with warnings.catch_warnings():
     
 
 PORT = 8899
+NUM_CPU_ACTION = 17
+NUM_GPU_ACTION = 5
+
 experiment_time = 500 #14100
 clock_change_time = 30
 cpu_power_limit = 1000
@@ -35,17 +38,18 @@ K.set_session(sess)
 
 
 class DQNAgent:
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_size, cpu_action_size, gpu_action_size):
         self.load_model = False
         self.training = 0
         self.state_size = state_size
-        self.action_size = action_size
-        self.actions = list(range(action_size))
-        self.q_table = defaultdict(lambda:[0.0 for i in range(action_size)])
+        self.action_size = cpu_action_size * gpu_action_size
+        self.actions = list(range(self.action_size))
+        self.q_table = defaultdict(lambda:[0.0 for i in range(self.action_size)])
         self.clk_action_list = []
-        for i in range(action_size):
-            clk_action = (i, int((i - 1) / 8) + 1)
-            self.clk_action_list.append(clk_action)
+        for i in range(cpu_action_size):
+            for j in range(gpu_action_size):
+                clk_action = (i, j)
+                self.clk_action_list.append(clk_action)
 
         # Hyperparameter
         self.learning_rate = 0.05    # 0.01
@@ -88,7 +92,7 @@ class DQNAgent:
     def get_action(self, state):
         state = np.array([state])
         if np.random.rand() <= self.epsilon:
-            q_value=self.model.predict(state)
+            q_value = self.model.predict(state)
             print('state={}, q_value={}, action=exploration, epsilon={}'.format(state[0], q_value[0], self.epsilon))
             return random.randrange(self.action_size)
         else:
@@ -139,15 +143,15 @@ class DQNAgent:
     @staticmethod
     def arg_max(state_action):
         max_index_list = []
-        max_value=state_action[0]
+        max_value = state_action[0]
         for index, value in enumerate(state_action):
             if value > max_value:
                 max_index_list.clear()
-                max_value=value
+                max_value = value
                 max_index_list.append(index)
-            elif value==max_value:
+            elif value == max_value:
                 max_index_list.append(index)
-        print('{}  {}'.format(max_index_list,max_value))
+        print('{}  {}'.format(max_index_list, max_value))
         return random.choice(max_index_list)
 
 
@@ -174,7 +178,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
 
 if __name__ == '__main__':
 
-    agent = DQNAgent(7, 17)
+    agent = DQNAgent(7, NUM_CPU_ACTION, NUM_GPU_ACTION)
     scores, episodes = [], []
 
     t = 1
@@ -201,6 +205,7 @@ if __name__ == '__main__':
     copy = 1
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(('', PORT))
     server_socket.listen(5)
 
@@ -232,22 +237,21 @@ if __name__ == '__main__':
             ts.append(t)
             fps_data.append(fps)
             power_data.append((c_p + g_p) * 100)
-            
 
-            next_state = (c_c, g_c, c_p, g_p, c_t, g_t,fps)
+            next_state = (c_c, g_c, c_p, g_p, c_t, g_t, fps)
             agent.q_max += np.amax(agent.model.predict(np.array([next_state])))
             agent.avg_q_max = agent.q_max / t
             avg_q_max_data.append(agent.avg_q_max)
             loss_data.append(agent.currentLoss)
 
             # reward
-            reward = get_reward(fps, c_p+g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
+            reward = get_reward(fps, c_p + g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
 
             # Handle dummy value at the first sensing
             if (c_p + g_p <= 0):
                 c_p = 20
                 g_p = 13
-            reward = get_reward(fps, c_p+g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
+            reward = get_reward(fps, c_p + g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
             reward_tmp.append(reward)
             if(len(reward_tmp) >= 300) :
                 reward_tmp.pop(0)
@@ -272,18 +276,17 @@ if __name__ == '__main__':
             state = next_state
 
             if c_t >= target_temp:
-                c_c = int(3*random.randint(0, int(c_c / 3)) + 2)
-                g_c = int(random.randint(1, g_c))
-
-                action = 3 * int(c_c / 3) + int(g_c) - 1
+                c_c = int(random.randint(0, c_c))
+                g_c = int(random.randint(0, g_c))
+                action = int(c_c) + int(g_c) - 1
             elif target_temp - c_t >= 3:
                 if fps < target_fps:
                     if np.random.rand() <= 0.3:
                         print('previous clock : {} {}'.format(c_c, g_c))
-                        c_c = int(3 * random.randint(int(c_c / 3), 5) + 1)
-                        g_c = int(random.randint(g_c, 2))
-                        print('explore higher clock@@@@@  {} {}'.format(c_c,g_c))
-                        action = 3 * int(c_c / 3) + int(g_c) - 1
+                        c_c = random.randint(c_c, NUM_CPU_ACTION - 1)
+                        g_c = random.randint(g_c, NUM_GPU_ACTION - 1)
+                        print('explore higher clock@@@@@  {} {}'.format(c_c, g_c))
+                        action = c_c + g_c - 1
                     else:
                         action = agent.get_action(state)
                         c_c = agent.clk_action_list[action][0]
@@ -352,7 +355,7 @@ if __name__ == '__main__':
     plt.xlabel('time')
     plt.ylabel('Avg Q-max')
     plt.grid(True)
-    plt.plot(ts,avg_q_max_data, label='avg_q_max')
+    plt.plot(ts, avg_q_max_data, label='avg_q_max')
     plt.legend(loc='upper left')
     plt.title('Average max-Q')
     plt.show()
