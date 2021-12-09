@@ -178,7 +178,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
 
 if __name__ == '__main__':
 
-    agent = DQNAgent(7, NUM_CPU_ACTION, NUM_GPU_ACTION)
+    agent = DQNAgent(6, NUM_CPU_ACTION, NUM_GPU_ACTION)
     scores, episodes = [], []
 
     t = 1
@@ -198,8 +198,10 @@ if __name__ == '__main__':
     g_t = 37
     c_t_prev = 37
     g_t_prev = 37
+    c_p = 2
+    fps = 16
     print('TCPServr Waiting on port 8702')
-    state = (3, 3, 20, 27, 40, 40, 30)
+    state = (c_c, g_c, c_p, c_t, g_t, fps)
     score = 0
     action = 0
     copy = 1
@@ -217,7 +219,7 @@ if __name__ == '__main__':
         ax3 = fig.add_subplot(4, 1, 3)
         ax4 = fig.add_subplot(4, 1, 4)
 
-        while t <= experiment_time:
+        while t < experiment_time:
             msg = client_socket.recv(512).decode()
             state_tmp = msg.split(',')
             
@@ -229,29 +231,27 @@ if __name__ == '__main__':
             c_c = int(state_tmp[0])
             g_c = int(state_tmp[1])
             c_p = int(state_tmp[2])
-            g_p = int(state_tmp[3])
-            c_t = float(state_tmp[4])
-            g_t = float(state_tmp[5])
-            fps = float(state_tmp[6])
+            c_t = float(state_tmp[3])
+            g_t = float(state_tmp[4])
+            fps = float(state_tmp[5])
 
             ts.append(t)
             fps_data.append(fps)
-            power_data.append((c_p + g_p) * 100)
+            power_data.append(c_p * 100)
 
-            next_state = (c_c, g_c, c_p, g_p, c_t, g_t, fps)
+            next_state = (c_c, g_c, c_p, c_t, g_t, fps)
             agent.q_max += np.amax(agent.model.predict(np.array([next_state])))
             agent.avg_q_max = agent.q_max / t
             avg_q_max_data.append(agent.avg_q_max)
             loss_data.append(agent.currentLoss)
 
             # reward
-            reward = get_reward(fps, c_p + g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
+            reward = get_reward(fps, c_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
 
             # Handle dummy value at the first sensing
-            if (c_p + g_p <= 0):
-                c_p = 20
-                g_p = 13
-            reward = get_reward(fps, c_p + g_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
+            if (c_p <= 0):
+                c_p = 2
+            reward = get_reward(fps, c_p, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta)
             reward_tmp.append(reward)
             if(len(reward_tmp) >= 300) :
                 reward_tmp.pop(0)
