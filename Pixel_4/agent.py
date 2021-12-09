@@ -20,16 +20,16 @@ with warnings.catch_warnings():
     
 
 PORT = 8899
-experiment_time=500 #14100
-clock_change_time=30
-cpu_power_limit=1000
-gpu_power_limit=1600
-target_fps=60
-target_temp=65
-beta=2 #4
+experiment_time = 500 #14100
+clock_change_time = 30
+cpu_power_limit = 1000
+gpu_power_limit = 1600
+target_fps = 60
+target_temp = 65
+beta = 2 #4
 
 config = tf.ConfigProto()
-config.gpu_options.allow_growth=True
+config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 K.set_session(sess)
 
@@ -37,21 +37,21 @@ K.set_session(sess)
 class DQNAgent:
     def __init__(self, state_size, action_size):
         self.load_model = False
-        self.training=0
-        self.state_size=state_size
-        self.action_size=action_size
-        self.actions=list(range(action_size))
-        self.q_table=defaultdict(lambda:[0.0 for i in range(action_size)])
-        self.clk_action_list=[]
+        self.training = 0
+        self.state_size = state_size
+        self.action_size = action_size
+        self.actions = list(range(action_size))
+        self.q_table = defaultdict(lambda:[0.0 for i in range(action_size)])
+        self.clk_action_list = []
         for i in range(action_size):
-            clk_action=(i, int((i - 1) / 8) + 1)
+            clk_action = (i, int((i - 1) / 8) + 1)
             self.clk_action_list.append(clk_action)
 
         # Hyperparameter
-        self.learning_rate=0.05    # 0.01
-        self.discount_factor=0.99
-        self.epsilon=1
-        self.epsilon_decay=0.08 # 0.99
+        self.learning_rate = 0.05    # 0.01
+        self.discount_factor = 0.99
+        self.epsilon = 1
+        self.epsilon_decay = 0.08 # 0.99
         self.epsilon_min = 0 # 0.1
         self.epsilon_start, self.epsilon_end = 1.0, 0.0 # 1.0, 0.1
 #        self.exploration_steps = 500
@@ -59,9 +59,9 @@ class DQNAgent:
         self.batch_size = 64
         self.train_start = 150 #200
 #        self.update_target_rate = 10000
-        self.q_max=0
-        self.avg_q_max=0
-        self.currentLoss=0
+        self.q_max = 0
+        self.avg_q_max = 0
+        self.currentLoss = 0
         # Replay memory (=500)
         self.memory = deque(maxlen=500)
 #        self.no_op_steps = 30
@@ -86,7 +86,7 @@ class DQNAgent:
         self.target_model.set_weights(self.model.get_weights())
     
     def get_action(self, state):
-        state=np.array([state])
+        state = np.array([state])
         if np.random.rand() <= self.epsilon:
             q_value=self.model.predict(state)
             print('state={}, q_value={}, action=exploration, epsilon={}'.format(state[0], q_value[0], self.epsilon))
@@ -132,13 +132,13 @@ class DQNAgent:
         hist = self.model.fit(states, target, batch_size=self.batch_size, epochs=1, verbose=0)
         self.currentLoss = hist.history['loss'][0]
         print('loss = {}'.format(self.currentLoss))
-        self.training=0
+        self.training = 0
 
         return action
 
     @staticmethod
     def arg_max(state_action):
-        max_index_list=[]
+        max_index_list = []
         max_value=state_action[0]
         for index, value in enumerate(state_action):
             if value > max_value:
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         ax3 = fig.add_subplot(4, 1, 3)
         ax4 = fig.add_subplot(4, 1, 4)
 
-        while t<experiment_time:
+        while t < experiment_time:
             msg = client_socket.recv(512).decode()
             state_tmp = msg.split(',')
             
@@ -234,7 +234,7 @@ if __name__ == '__main__':
             power_data.append((c_p + g_p) * 100)
             
 
-            next_state=(c_c, g_c, c_p, g_p, c_t, g_t,fps)
+            next_state = (c_c, g_c, c_p, g_p, c_t, g_t,fps)
             agent.q_max += np.amax(agent.model.predict(np.array([next_state])))
             agent.avg_q_max = agent.q_max / t
             avg_q_max_data.append(agent.avg_q_max)
@@ -271,7 +271,6 @@ if __name__ == '__main__':
             # get action
             state = next_state
 
-
             if c_t >= target_temp:
                 c_c = int(3*random.randint(0, int(c_c / 3)) + 2)
                 g_c = int(random.randint(1, g_c))
@@ -294,9 +293,9 @@ if __name__ == '__main__':
                     c_c = agent.clk_action_list[action][0]
                     g_c = agent.clk_action_list[action][1]
             else:
-                action=agent.get_action(state)
-                c_c=agent.clk_action_list[action][0]
-                g_c=agent.clk_action_list[action][1]    
+                action = agent.get_action(state)
+                c_c = agent.clk_action_list[action][0]
+                g_c = agent.clk_action_list[action][1]    
 
 			# do action(one step)
             send_msg = str(c_c) + ',' + str(g_c)
