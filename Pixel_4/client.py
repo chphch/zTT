@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+import os
 import time
 import socket
 import argparse
 import matplotlib.pyplot as plt
 import csv
+
+import numpy as np
 
 from SurfaceFlinger.get_fps import SurfaceFlingerFPS, get_multi_dnn_profiler_fps
 from PowerLogger.powerlogger import PowerLogger
@@ -12,8 +15,87 @@ from CPU.cpu import CPU
 from GPU.gpu import GPU
 
 
-if __name__ == "__main__":
+FILEPATH_STATES = 'states.csv'
 
+
+def log_results(pl, fps_data, c0, c6, g):
+    # Logging results
+    print('Average Total power={} mW'.format(sum(pl.power_data) / len(pl.power_data)))
+    print('Average fps = {} fps'.format(sum(fps_data) / len(fps_data)))
+
+    ts = range(0, len(fps_data))
+    f = open('power_skype_zTT.csv', 'w', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+    wr.writerow(pl.power_data[1:])
+    f.close()
+
+    f = open('temp_skype_zTT.csv', 'w', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+    wr.writerow(c0.temp_data)
+    wr.writerow(c6.temp_data)
+    wr.writerow(g.temp_data)
+    f.close()
+
+    f = open('clock_skype_zTT.csv', 'w', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+    wr.writerow(c0.clock_data)
+    wr.writerow(c6.clock_data)
+    wr.writerow(g.clock_data)
+    f.close()
+
+    f = open('fps_skype_zTT.csv', 'w', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+    wr.writerow(fps_data)
+    f.close()
+
+    # Plot results
+    fig = plt.figure(figsize=(12, 14))
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax4 = fig.add_subplot(2, 2, 4)
+
+    ax1.set_xlabel('time')
+    ax1.set_ylabel('power(mw)')
+    ax1.set_ylim(0, 1.1 * np.max(pl.power_data))
+    ax1.grid(True)
+    ax1.plot(ts, pl.power_data[1:], label='TOTAL')
+    ax1.legend(loc='upper right')
+    ax1.set_title('Power')
+
+    ax2.set_xlabel('time')
+    ax2.set_ylabel('temperature')
+    ax2.grid(True)
+    ax2.plot(ts, c0.temp_data, label='LITTLE')
+    ax2.plot(ts, c6.temp_data, label='Big')
+    ax2.plot(ts, g.temp_data, label='GPU')
+    ax2.legend(loc='upper right')
+    ax2.set_title('temperature')
+
+    ax3.set_xlabel('time')
+    ax3.set_ylabel('clock frequency(MHz)')
+    ax3.set_ylim(0, 1.1 * np.max([np.max(c0.clock_data), np.max(c6.clock_data), np.max(g.clock_data)]))
+    ax3.grid(True)
+    ax3.plot(ts, c0.clock_data, label='LITTLE')
+    ax3.plot(ts, c6.clock_data, label='Big')
+    ax3.plot(ts, g.clock_data, label='GPU')
+    ax3.legend(loc='upper right')
+    ax3.set_title('clock')
+
+    ax4.set_xlabel('time')
+    ax4.set_ylabel('FPS')
+    ax4.set_ylim(0, 1.1 * np.max([np.max(fps_data), target_fps]))
+    ax4.grid(True)
+    ax4.plot(ts, fps_data, label='Average FPS')
+    ax4.axhline(y=target_fps, color='r', linewidth=1)
+    ax4.legend(loc='upper right')
+    ax4.set_title('fps')
+
+    plt.tight_layout
+    plt.show()
+
+
+if __name__ == "__main__":
     ''' 
         --app            Application name [showroom, skype, call]
         --exp_time         Time steps for learning
@@ -102,7 +184,8 @@ if __name__ == "__main__":
     state = (c_c, g_c, int(pl.getPower() / 100), 0, c_t, g_t)
     time.sleep(4)
 
-
+    if os.path.exists(FILEPATH_STATES):
+        os.remove(FILEPATH_STATES)
 
     ''' Start learning '''
     while(1):
@@ -129,6 +212,9 @@ if __name__ == "__main__":
         c_t = float(c0.getCPUtemp())
         g_t = float(g.getGPUtemp())
         next_state = (c_c, g_c, c_p, g_p, c_t, g_t, fps)
+
+        with open(FILEPATH_STATES, 'a') as fp:
+            fp.write(','.join(map(str, next_state)) + '\n')
         
         send_msg = str(c_c) + ',' + str(g_c) + ',' + str(c_p) + ',' + str(g_p) + ',' \
 			+ str(c_t) + ',' + str(g_t) + ',' + str(fps)
@@ -155,78 +241,4 @@ if __name__ == "__main__":
         if t == experiment_time:
             break
 
-
-    # Logging results
-    print('Average Total power={} mW'.format(sum(pl.power_data) / len(pl.power_data)))
-    print('Average fps = {} fps'.format(sum(fps_data) / len(fps_data)))
-
-    ts = range(0, len(fps_data))
-    f = open('power_skype_zTT.csv', 'w', encoding='utf-8', newline='')
-    wr = csv.writer(f)
-    wr.writerow(pl.power_data[1:])
-    f.close()
-
-    f = open('temp_skype_zTT.csv', 'w', encoding='utf-8', newline='')
-    wr = csv.writer(f)
-    wr.writerow(c0.temp_data)
-    wr.writerow(c6.temp_data)
-    wr.writerow(g.temp_data)
-    f.close()
-
-    f = open('clock_skype_zTT.csv', 'w', encoding='utf-8', newline='')
-    wr = csv.writer(f)
-    wr.writerow(c0.clock_data)
-    wr.writerow(c6.clock_data)
-    wr.writerow(g.clock_data)
-    f.close()
-
-    f = open('fps_skype_zTT.csv', 'w', encoding='utf-8', newline='')
-    wr = csv.writer(f)
-    wr.writerow(fps_data)
-    f.close()
-
-    # Plot results
-    fig = plt.figure(figsize=(12, 14))
-    ax1 = fig.add_subplot(2, 2, 1)
-    ax2 = fig.add_subplot(2, 2, 2)
-    ax3 = fig.add_subplot(2, 2, 3)
-    ax4 = fig.add_subplot(2, 2, 4)
-
-    ax1.set_xlabel('time')
-    ax1.set_ylabel('power(mw)')
-    ax1.set_ylim([0, 4000]) 
-    ax1.grid(True)
-    ax1.plot(ts, pl.power_data[1:], label='TOTAL')
-    ax1.legend(loc='upper right')
-    ax1.set_title('Power')
-
-    ax2.set_xlabel('time')
-    ax2.set_ylabel('temperature')
-    ax2.set_ylim([0, 70])
-    ax2.grid(True)
-    ax2.plot(ts, c0.temp_data, label='LITTLE')
-    ax2.plot(ts, c6.temp_data, label='Big')
-    ax2.plot(ts, g.temp_data, label='GPU')
-    ax2.legend(loc='upper right')
-    ax2.set_title('temperature')
-
-    ax3.set_xlabel('time')
-    ax3.set_ylabel('clock frequency(MHz)')
-    ax3.set_ylim([0, 2000])
-    ax3.grid(True)
-    ax3.plot(ts, c0.clock_data, label='LITTLE')
-    ax3.plot(ts, c6.clock_data, label='Big')
-    ax3.plot(ts, g.clock_data, label='GPU')
-    ax3.legend(loc='upper right')
-    ax3.set_title('clock')
-
-    ax4.set_xlabel('time')
-    ax4.set_ylabel('FPS')
-    ax4.set_ylim([0, 61])
-    ax4.grid(True)
-    ax4.plot(ts, fps_data, label='Average FPS')
-    ax4.axhline(y=target_fps, color='r', linewidth=1)
-    ax4.legend(loc='upper right')
-    ax4.set_title('fps')
-
-    plt.show()
+    log_results(pl, fps_data, c0, c6, g)
