@@ -11,8 +11,8 @@ import numpy as np
 
 from SurfaceFlinger.get_fps import SurfaceFlingerFPS, get_multi_dnn_profiler_fps
 from PowerLogger.powerlogger import PowerLogger
-from CPU.cpu import CPU
-from GPU.gpu import GPU
+from CPU.cpu import CPU, big_cpu_clock_list
+from GPU.gpu import GPU, gpu_clock_list
 
 
 FILEPATH_STATES = 'states.csv'
@@ -177,8 +177,8 @@ if __name__ == "__main__":
         c_t -> CPU temperature
         g_t -> GPU temperature
     '''
-    c_c = 17
-    g_c = 2
+    c_c = len(big_cpu_clock_list) - 1
+    g_c = len(gpu_clock_list) - 1
     c_t = float(c0.getCPUtemp())
     g_t = float(g.getGPUtemp())
     state = (c_c, g_c, int(pl.getPower() / 100), 0, c_t, g_t)
