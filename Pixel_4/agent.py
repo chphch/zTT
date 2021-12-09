@@ -217,7 +217,7 @@ if __name__ == '__main__':
         ax3 = fig.add_subplot(4, 1, 3)
         ax4 = fig.add_subplot(4, 1, 4)
 
-        while t < experiment_time:
+        while t <= experiment_time:
             msg = client_socket.recv(512).decode()
             state_tmp = msg.split(',')
             
