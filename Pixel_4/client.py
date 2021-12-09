@@ -141,7 +141,7 @@ if __name__ == "__main__":
     ''' Set CPU and GPU governor to userspace '''
     c0.setUserspace()
     c6.setUserspace()
-    g.setUserspace()
+    # g.setUserspace()
 
     ''' Set CPU and GPU clock to maximum before starting '''
     c0.setCPUclock(17)
@@ -187,6 +187,8 @@ if __name__ == "__main__":
     if os.path.exists(FILEPATH_STATES):
         os.remove(FILEPATH_STATES)
 
+    start_time = time.time()
+
     ''' Start learning '''
     while(1):
         if app == 'multi_dnn_profiler':
@@ -214,7 +216,7 @@ if __name__ == "__main__":
         next_state = (c_c, g_c, c_p, g_p, c_t, g_t, fps)
 
         with open(FILEPATH_STATES, 'a') as fp:
-            fp.write(','.join(map(str, next_state)) + '\n')
+            fp.write(','.join(map(str, [time.time() - start_time] + list(next_state))) + '\n')
         
         send_msg = str(c_c) + ',' + str(g_c) + ',' + str(c_p) + ',' + str(g_p) + ',' \
 			+ str(c_t) + ',' + str(g_t) + ',' + str(fps)
