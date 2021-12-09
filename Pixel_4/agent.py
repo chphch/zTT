@@ -23,11 +23,9 @@ PORT = 8899
 NUM_CPU_ACTION = 17
 NUM_GPU_ACTION = 5
 
-experiment_time = 500 #14100
 clock_change_time = 30
 cpu_power_limit = 1000
 gpu_power_limit = 1600
-target_fps = 60
 target_temp = 65
 beta = 2 #4
 
@@ -219,7 +217,10 @@ if __name__ == '__main__':
         ax3 = fig.add_subplot(4, 1, 3)
         ax4 = fig.add_subplot(4, 1, 4)
 
-        while t < experiment_time:
+        msg = client_socket.recv(512).decode()
+        target_fps, experiment_time = map(int, msg.split(','))
+
+        while t <= experiment_time:
             msg = client_socket.recv(512).decode()
             state_tmp = msg.split(',')
             
@@ -344,8 +345,6 @@ if __name__ == '__main__':
             if t % 500 == 0:
                 agent.model.save_weights('./save_model/model.h5')
                 print('[Save model]')
-            if t == experiment_time:
-                break
 
     finally:
         server_socket.close()
