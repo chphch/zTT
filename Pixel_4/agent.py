@@ -20,8 +20,8 @@ with warnings.catch_warnings():
     
 
 PORT = 8899
-NUM_CPU_ACTION = 17
-NUM_GPU_ACTION = 5
+NUM_ACTION_CPU = 3
+NUM_ACTION_GPU = 3
 
 clock_change_time = 30
 cpu_power_limit = 1000
@@ -46,8 +46,7 @@ class DQNAgent:
         self.clk_action_list = []
         for i in range(cpu_action_size):
             for j in range(gpu_action_size):
-                clk_action = (i, j)
-                self.clk_action_list.append(clk_action)
+                self.clk_action_list.append((i, j))
 
         # Hyperparameter
         self.learning_rate = 0.05    # 0.01
@@ -102,7 +101,7 @@ class DQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train_model(self):
-        self.training=1
+        self.training = 1
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
@@ -159,7 +158,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
     print('power={}'.format(power))
     u = max(1, fps / target_fps)
 
-    if g_t<= target_temp:
+    if g_t <= target_temp:
         v2 = 0
     else:
         v2 = 2 * (target_temp - g_t)
@@ -176,7 +175,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
 
 if __name__ == '__main__':
 
-    agent = DQNAgent(6, NUM_CPU_ACTION, NUM_GPU_ACTION)
+    agent = DQNAgent(6, NUM_ACTION_CPU, NUM_ACTION_GPU)
     scores, episodes = [], []
 
     t = 1
@@ -276,18 +275,18 @@ if __name__ == '__main__':
             # get action
             state = next_state
 
-            if c_t >= target_temp:
-                c_c = int(random.randint(0, c_c))
-                g_c = int(random.randint(0, g_c))
-                action = int(c_c) + int(g_c) - 1
+            if c_t >= target_temp or g_t > target_temp:
+                c_c = random.randint(0, max(0, c_c - 1))
+                g_c = random.randint(0, max(0, g_c - 1))
+                action = c_c * NUM_ACTION_GPU + g_c
             elif target_temp - c_t >= 3:
                 if fps < target_fps:
                     if np.random.rand() <= 0.3:
                         print('previous clock : {} {}'.format(c_c, g_c))
-                        c_c = random.randint(c_c, NUM_CPU_ACTION - 1)
-                        g_c = random.randint(g_c, NUM_GPU_ACTION - 1)
+                        c_c = random.randint(c_c, max(c_c, NUM_ACTION_CPU - 1))
+                        g_c = random.randint(g_c, max(g_c, NUM_ACTION_GPU - 1))
                         print('explore higher clock@@@@@  {} {}'.format(c_c, g_c))
-                        action = c_c + g_c - 1
+                        action = c_c * NUM_ACTION_GPU + g_c
                     else:
                         action = agent.get_action(state)
                         c_c = agent.clk_action_list[action][0]
