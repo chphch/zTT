@@ -62,12 +62,14 @@ class Client:
 
     def initialize(self):
         for action in range(NUM_ACTION_CPU):
-            cpu_clock = int((1 + action) / NUM_ACTION_CPU * len(big_cpu_clock_list)) - 1  # 0: 4, 1: 10, 2: 16
+            # 0: 0, 1: 8, 2: 16
+            cpu_clock = min(int(action / (NUM_ACTION_CPU - 1) * len(big_cpu_clock_list)), len(big_cpu_clock_list) - 1)
             self.action_to_clock_dict_cpu[action] = cpu_clock
             self.clock_to_action_dict_cpu[cpu_clock] = action
 
         for action in range(NUM_ACTION_GPU):
-            gpu_clock = int((1 + action) / NUM_ACTION_GPU * len(gpu_clock_list)) - 1  # 0: 1, 1: 3, 2: 5
+            # 0: 0, 1: 2, 2: 4
+            gpu_clock = min(int(action / (NUM_ACTION_GPU - 1) * len(gpu_clock_list)), len(gpu_clock_list) - 1)
             self.action_to_clock_dict_gpu[action] = gpu_clock
             self.clock_to_action_dict_gpu[gpu_clock] = action
 
