@@ -118,6 +118,8 @@ class Client:
                 clk = recv_msg.split(',')
                 c_c = int(clk[0])
                 g_c = int(clk[1])
+                reward = float(clk[2])
+                loss = float(clk[3])
                 is_received = True
             except KeyboardInterrupt:
                 raise KeyboardInterrupt()
@@ -149,7 +151,7 @@ class Client:
         self.state = next_state
 
         with open(FILEPATH_STATES, 'a') as fp:
-            fp.write(','.join(map(str, [time.time() - self.start_time] + list(self.state))) + '\n')
+            fp.write(','.join(map(str, [time.time() - self.start_time] + list(self.state) + [reward, loss])) + '\n')
 
     def get_fps(self):
         if self.app == 'multi_dnn_profiler':
