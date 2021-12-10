@@ -27,6 +27,9 @@ SURFACE_FLINGER_TARGETS = {
     #"\"SurfaceView - com.android.chrome/org.chromium.chrome.browser.ChromeTabbedActivity#0\""
 }
 
+NUM_ACTION_CPU = 3
+NUM_ACTION_GPU = 3
+
 # (CPU clock, GPU clock, power, CPU temperature, GPU temperature)
 State = namedtuple('State', ['c_c', 'g_c', 'c_p', 'c_t', 'g_t', 'fps'])
 
@@ -50,10 +53,24 @@ class Client:
         self.c0 = CPU(0, ip=self.pixel_ip, cpu_type='l')
         self.c6 = CPU(4, ip=self.pixel_ip, cpu_type='b')
         self.g = GPU(ip=self.pixel_ip)
+        self.action_to_clock_dict_cpu = {}
+        self.clock_to_action_dict_cpu = {}
+        self.action_to_clock_dict_gpu = {}
+        self.clock_to_action_dict_gpu = {}
         self.start_time = None
         self.initialize()
 
     def initialize(self):
+        for action in range(NUM_ACTION_CPU):
+            cpu_clock = int((1 + action) / NUM_ACTION_CPU * len(big_cpu_clock_list)) - 1  # 0: 4, 1: 10, 2: 16
+            self.action_to_clock_dict_cpu[action] = cpu_clock
+            self.clock_to_action_dict_cpu[cpu_clock] = action
+
+        for action in range(NUM_ACTION_GPU):
+            gpu_clock = int((1 + action) / NUM_ACTION_GPU * len(gpu_clock_list)) - 1  # 0: 1, 1: 3, 2: 5
+            self.action_to_clock_dict_gpu[action] = gpu_clock
+            self.clock_to_action_dict_gpu[gpu_clock] = action
+
         self.client_socket.send((str(self.target_fps) + ',' + str(self.exp_time)).encode())
 
         ''' Set CPU and GPU governor to userspace '''
@@ -72,8 +89,8 @@ class Client:
             view = SURFACE_FLINGER_TARGETS[self.app]
             self.sf_fps_driver = SurfaceFlingerFPS(view, ip=self.pixel_ip)
 
-        c_c = max_clock_index_cpu
-        g_c = max_clock_index_gpu
+        c_c = self.clock_to_action_dict_cpu[max_clock_index_cpu]
+        g_c = self.clock_to_action_dict_gpu[max_clock_index_gpu]
         c_t = float(self.c0.getCPUtemp())
         g_t = float(self.g.getGPUtemp())
         fps = self.get_fps()
@@ -100,12 +117,14 @@ class Client:
                 c_c = int(clk[0])
                 g_c = int(clk[1])
                 is_received = True
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt()
             except:
                 pass
 
-        self.c0.setCPUclock(c_c)
-        self.c6.setCPUclock(c_c)
-        self.g.setGPUclock(g_c)
+        self.c0.setCPUclock(self.action_to_clock_dict_cpu[c_c])
+        self.c6.setCPUclock(self.action_to_clock_dict_cpu[c_c])
+        self.g.setGPUclock(self.action_to_clock_dict_gpu[g_c])
 
         fps = self.get_fps()
         self.fps_data.append(fps)
@@ -124,7 +143,7 @@ class Client:
         g_t = float(self.g.getGPUtemp())
 
         next_state = State(c_c, g_c, c_p, c_t, g_t, fps)
-        print('[{}] state:{} next_state:{} fps:{}'.format(self.t, self.state, next_state, fps))
+        print('[{}] state:{} next_state:{} fps:{}'.format(self.t, tuple(self.state), tuple(next_state), fps))
         self.state = next_state
 
         with open(FILEPATH_STATES, 'a') as fp:
