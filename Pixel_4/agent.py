@@ -302,7 +302,7 @@ if __name__ == '__main__':
                 g_c = agent.clk_action_list[action][1]
 
 			# do action(one step)
-            send_msg = str(c_c) + ',' + str(g_c)
+            send_msg = str(c_c) + ',' + str(g_c) + ',' + str(reward) + ',' + str(agent.currentLoss)
             client_socket.send(send_msg.encode())
             ax1.plot(ts, fps_data, linewidth=1, color='pink')
             ax1.axhline(y=target_fps, xmin=0, xmax=2000)
