@@ -265,7 +265,8 @@ if __name__ == '__main__':
                 if reward > 1:
                     agent.append_sample(state, action, reward, next_state, done)
 
-            print('[{}] state:{} action:{} next_state:{} reward:{} fps:{}, avg_q={}'.format(t, state, action, next_state, reward, fps, agent.avg_q_max))
+            print('[{}] state:{} action:{} next_state:{} reward:{} fps:{}, avg_q={}'.format(
+                t - 1, state, action, next_state, reward, fps, agent.avg_q_max))
             if len(agent.memory) >= agent.train_start:
                 agent.train_model()
 #                print(agent.get_flops(agent.model)) 
@@ -298,7 +299,7 @@ if __name__ == '__main__':
             else:
                 action = agent.get_action(state)
                 c_c = agent.clk_action_list[action][0]
-                g_c = agent.clk_action_list[action][1]    
+                g_c = agent.clk_action_list[action][1]
 
 			# do action(one step)
             send_msg = str(c_c) + ',' + str(g_c)
