@@ -9,7 +9,7 @@ def get_multi_dnn_profiler_fps(ip):
     out = subprocess.check_output(
         ['adb', '-s', ip, 'shell', 'cat', '/storage/emulated/0/Android/data/com.multi_dnn_profiler/files/frame_rate'])
     out = out.decode('utf-8')
-    return float(out[1:-1].split('=')[1])
+    return float(out.strip().replace('{', '').replace('}', '').split('=')[1])
 
 
 class SurfaceFlingerFPS():
