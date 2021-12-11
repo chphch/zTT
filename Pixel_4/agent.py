@@ -188,7 +188,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
         u = 1
     else:
         u = math.exp(0.1 * (fps - target_fps))
-    return u + v1 + v2 + beta / power
+    return u + v1 + v2 + (beta / power if power else 0)
 
 
 if __name__ == '__main__':
