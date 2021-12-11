@@ -130,7 +130,10 @@ class Client:
         self.c6.setCPUclock(self.action_to_clock_dict_cpu[c_c])
         self.g.setGPUclock(self.action_to_clock_dict_gpu[g_c])
 
-        fps = self.get_fps()
+        try:
+            fps = self.get_fps()
+        except:
+            fps = self.state.fps
         self.fps_data.append(fps)
 
         self.ts.append(self.t)
