@@ -36,9 +36,11 @@ K.set_session(sess)
 
 
 class DQNAgent:
-    def __init__(self, state_size, cpu_action_size, gpu_action_size):
+    def __init__(self, state_size, len_history, cpu_action_size, gpu_action_size):
         self.load_model = False
         self.training = 0
+        self.len_history = len_history
+        self.recent_samples = []
         self.state_size = state_size
         self.action_size = cpu_action_size * gpu_action_size
         self.actions = list(range(self.action_size))
@@ -59,6 +61,7 @@ class DQNAgent:
 #        self.epsilon_decay_step = (self.epsilon_start - self.epsilon_end) / self.exploration_steps
         self.batch_size = 64
         self.train_start = 150 #200
+        assert self.train_start >= self.batch_size + self.len_history - 1
 #        self.update_target_rate = 10000
         self.q_max = 0
         self.avg_q_max = 0
@@ -76,7 +79,7 @@ class DQNAgent:
 
     def build_model(self):
         model = Sequential()
-        model.add(Dense(6, input_dim=self.state_size, activation='relu', kernel_initializer='normal'))
+        model.add(Dense(6, input_dim=self.state_size * self.len_history, activation='relu', kernel_initializer='normal'))
         model.add(Dense(6, activation='relu', kernel_initializer='normal'))
         model.add(Dense(self.action_size, activation='linear', kernel_initializer='normal'))
         model.summary()
@@ -87,19 +90,34 @@ class DQNAgent:
         self.target_model.set_weights(self.model.get_weights())
     
     def get_action(self, state):
-        state = np.array([state])
+        stacked_states = np.zeros((self.len_history, self.state_size))
+        for i, sample in enumerate(self.recent_samples):
+            stacked_states[(self.len_history - 1) - len(self.recent_samples) + i] = sample[0]
+        stacked_states[-1] = state
         if np.random.rand() <= self.epsilon:
-            q_value = self.model.predict(state)
+            q_value = self.model.predict(stacked_states.flatten().reshape(1, -1))
             print('state={}, q_value={}, action=exploration, epsilon={}'.format(state[0], q_value[0], self.epsilon))
             return random.randrange(self.action_size)
         else:
-            q_value = self.model.predict(state)
+            q_value = self.model.predict(stacked_states.flatten().reshape(1, -1))
             print('state={}, q_value={}, action={}, epsilon={}'.format(state[0], q_value[0], np.argmax(q_value[0]), self.epsilon))
             return np.argmax(q_value[0])
-    
-    def append_sample(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
 
+    def append_sample(self, state, action, reward, next_state, done):
+        self.recent_samples.append((state, action, reward, next_state, done))
+        if len(self.recent_samples) == self.len_history:
+            stacked_state = np.array([sample[0] for sample in self.recent_samples]).flatten()
+            stacked_next_state = np.array([sample[3] for sample in self.recent_samples]).flatten()
+            self.memory.append((stacked_state, action, reward, stacked_next_state, done))
+            self.recent_samples.pop(0)
+
+    def predict(self, states):
+        stacked_states = np.zeros((self.len_history, self.state_size))
+        for i, sample in enumerate(self.recent_samples):
+            stacked_states[(self.len_history - 1) - len(self.recent_samples) + i] = sample[0]
+        stacked_states[-1] = states
+        return self.model.predict(stacked_states.flatten().reshape(1, -1))
+        
     def train_model(self):
         self.training = 1
 
@@ -110,8 +128,8 @@ class DQNAgent:
 
         mini_batch = random.sample(self.memory, self.batch_size)
 
-        states = np.zeros((self.batch_size, self.state_size))
-        next_states = np.zeros((self.batch_size, self.state_size))
+        states = np.zeros((self.batch_size, self.state_size * self.len_history))
+        next_states = np.zeros((self.batch_size, self.state_size * self.len_history))
         actions, rewards, dones = [], [], []
 
         for i in range(self.batch_size):
@@ -175,7 +193,7 @@ def get_reward(fps, power, target_fps, c_t, g_t, c_t_prev, g_t_prev, beta):
 
 if __name__ == '__main__':
 
-    agent = DQNAgent(6, NUM_ACTION_CPU, NUM_ACTION_GPU)
+    agent = DQNAgent(6, 5, NUM_ACTION_CPU, NUM_ACTION_GPU)
     scores, episodes = [], []
 
     t = 1
@@ -240,7 +258,7 @@ if __name__ == '__main__':
             power_data.append(c_p * 100)
 
             next_state = (c_c, g_c, c_p, c_t, g_t, fps)
-            agent.q_max += np.amax(agent.model.predict(np.array([next_state])))
+            agent.q_max += np.amax(agent.predict(next_state))
             agent.avg_q_max = agent.q_max / t
             avg_q_max_data.append(agent.avg_q_max)
             loss_data.append(agent.currentLoss)
